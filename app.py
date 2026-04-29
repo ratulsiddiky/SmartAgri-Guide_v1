@@ -6,7 +6,6 @@ from extensions import limiter
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
     app.config["SECRET_KEY"] = Config.SECRET_KEY
     app.config["RATELIMIT_DEFAULT"] = "; ".join(Config.RATE_LIMIT_DEFAULTS)
     CORS(
@@ -34,11 +33,15 @@ def create_app():
         )
 
     with app.app_context():
-            db = get_db()
-            try:
-                db.farms.create_index([("location", "2dsphere")])
-            except Exception as e:
-                print(f"Database Index Note: {e}")
+        db = get_db()
+        try:
+            db.farms.create_index([("location", "2dsphere")])
+        except Exception as e:
+            print(f"Database Index Note (2dsphere): {e}")
+        try:
+            db.farms.create_index([("farm_name", "text"), ("crop_type", "text")])
+        except Exception as e:
+            print(f"Database Index Note (text): {e}")
 
     return app
 
