@@ -1,0 +1,10 @@
+Flask
+Flask-Cors
+Flask-Limiter
+PyJWT
+bcrypt
+pymongo
+python-dotenv
+requests
+pytest
+mongomock
