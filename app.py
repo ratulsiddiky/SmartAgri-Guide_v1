@@ -12,8 +12,9 @@ def create_app():
         app,
         resources={
             r"/*": {
-                "origins": ["http://localhost:4200"],
+                "origins": ["http://localhost:4200", "http://127.0.0.1:4200"],
                 "allow_headers": ["Content-Type", "Authorization"],
+                "supports_credentials": True,
             }
         },
     )

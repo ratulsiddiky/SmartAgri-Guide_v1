@@ -161,6 +161,7 @@ def login():
         {
             "username": user["username"],
             "role": user["role"],
+            "user_id": str(user["_id"]),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30),
         },
         config.Config.SECRET_KEY,
@@ -174,6 +175,7 @@ def login():
                 "token": token,
                 "username": user["username"],
                 "role": user["role"],
+                "user_id": str(user["_id"]),
             }
         ),
         200,
@@ -191,6 +193,16 @@ def logout(current_user):
     )
     config.get_db().blacklist.insert_one({"token": token, "username": current_user["username"]})
     return make_response(jsonify({"message": "Logout successful"}), 200)
+
+
+@auth_bp.route("/api/users/me", methods=["GET"])
+@jwt_required
+def get_current_user(current_user):
+    user_doc = serialize_document(current_user)
+    user_doc.pop("password", None)
+    user_doc.pop("verification_token", None)
+    user_doc.pop("verification_token_expires_at", None)
+    return make_response(jsonify(user_doc), 200)
 
 
 @auth_bp.route("/api/users", methods=["GET"])

@@ -201,6 +201,49 @@ def add_sensor(current_user, farm_id):
     return make_response(jsonify({"message": "Sensor added to farm!", "sensor": sensor}), 201)
 
 
+@farms_bp.route("/api/farms/my", methods=["GET"])
+@jwt_required
+def get_my_farms(current_user):
+    page_raw = request.args.get("page", "1")
+    limit_raw = request.args.get("limit", "9")
+    try:
+        page = max(1, int(page_raw))
+        limit = max(1, min(100, int(limit_raw)))
+    except (TypeError, ValueError):
+        return _error_response(
+            f"Invalid pagination parameters: page='{page_raw}' and limit='{limit_raw}' must both be whole numbers.",
+            400,
+        )
+
+    skip = (page - 1) * limit
+    query = {"owner_id": current_user["_id"]}
+    try:
+        total = _farms_collection().count_documents(query)
+        cursor = _farms_collection().find(query).skip(skip).limit(limit)
+        farms_list = [serialize_document(farm) for farm in cursor]
+    except PyMongoError as exc:
+        return _error_response(
+            "Unable to load your farms right now because the database query failed.",
+            500,
+            error=str(exc),
+        )
+
+    return make_response(
+        jsonify(
+            {
+                "data": farms_list,
+                "pagination": {
+                    "page": page,
+                    "limit": limit,
+                    "total": total,
+                    "has_next": skip + len(farms_list) < total,
+                },
+            }
+        ),
+        200,
+    )
+
+
 @farms_bp.route("/api/farms/search", methods=["GET"])
 @limiter.limit("30 per minute")
 def search_farms():
