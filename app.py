@@ -34,7 +34,7 @@ def create_app():
         )
 
     with app.app_context():
-    db = get_db()
+        db = get_db()
     try:
         db.farms.create_index([("location", "2dsphere")])
     except Exception as e:

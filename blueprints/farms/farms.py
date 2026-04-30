@@ -29,6 +29,13 @@ def _farms_collection():
 
 
 def get_farm_if_authorised(farm_id, current_user):
+    """
+    Fetch a farm and verify authorization in one database query.
+    Returns: (farm_object, error_response) tuple
+    - On success: (farm, None)
+    - On error: (None, error_response)
+    """
+
     if not ObjectId.is_valid(farm_id):
         return (
             None,
@@ -38,26 +45,37 @@ def get_farm_if_authorised(farm_id, current_user):
             ),
         )
 
-    farm = _farms_collection().find_one({"_id": ObjectId(farm_id)})
-    if not farm:
+    try:
+        farm = _farms_collection().find_one({"_id": ObjectId(farm_id)})
+        
+        if not farm:
+            return (
+                None,
+                _error_response(
+                    f"No farm was found for id '{farm_id}'. Check the link or refresh the list and try again.",
+                    404,
+                ),
+            )
+
+        is_owner = str(farm.get("owner_id")) == str(current_user["_id"])
+        is_admin = current_user.get("role") == "admin"
+        
+        if not (is_owner or is_admin):
+            return (
+                None,
+                _error_response(
+                    "You do not have permission to manage this farm. Only the owner or an admin can edit it.",
+                    403,
+                ),
+            )
+
+        return farm, None
+        
+    except Exception as e:
         return (
             None,
-            _error_response(
-                f"No farm was found for id '{farm_id}'. Check the link or refresh the list and try again.",
-                404,
-            ),
+            _error_response(f"Database error: {str(e)}", 500)
         )
-
-    if current_user.get("role") == "admin":
-        return farm, None
-
-    if str(farm["owner_id"]) != str(current_user["_id"]):
-        return None, _error_response(
-            "You do not have permission to manage this farm. Only the owner or an admin can edit it.",
-            403,
-        )
-
-    return farm, None
 
 
 @farms_bp.route("/api/farms", methods=["GET"])
@@ -187,7 +205,7 @@ def delete_farm(current_user, farm_id):
 @farms_bp.route("/api/farms/<farm_id>/sensors", methods=["POST"])
 @jwt_required
 def add_sensor(current_user, farm_id):
-    _, error_response = get_farm_if_authorised(farm_id, current_user)
+    farm, error_response = get_farm_if_authorised(farm_id, current_user)  # ← CAPTURES FARM
     if error_response:
         return error_response
 
@@ -387,7 +405,7 @@ def broadcast_alert(current_user):
 @farms_bp.route("/api/farms/<farm_id>/insights", methods=["GET"])
 @jwt_required
 def get_farm_insights(current_user, farm_id):
-    _, error_response = get_farm_if_authorised(farm_id, current_user)
+    farm, error_response = get_farm_if_authorised(farm_id, current_user)
     if error_response:
         return error_response
 
