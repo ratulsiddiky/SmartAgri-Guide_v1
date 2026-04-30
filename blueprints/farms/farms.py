@@ -148,7 +148,14 @@ def update_farm(current_user, farm_id):
             400,
         )
 
-    _farms_collection().update_one({"_id": ObjectId(farm_id)}, {"$set": updates})
+    try:
+        result = _farms_collection().update_one({"_id": ObjectId(farm_id)}, {"$set": updates})
+    except PyMongoError as exc:
+        return _error_response("Database error while updating farm.", 500, error=str(exc))
+
+    if result.matched_count == 0:
+        return _error_response(f"Farm '{farm_id}' was not found in the database.", 404)
+
     return make_response(jsonify({"message": "Farm updated successfully!"}), 200)
 
 
