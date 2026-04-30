@@ -13,8 +13,11 @@ def create_app():
         resources={
             r"/*": {
                 "origins": ["http://localhost:4200", "http://127.0.0.1:4200"],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
                 "allow_headers": ["Content-Type", "Authorization"],
                 "supports_credentials": True,
+                "expose_headers": ["Content-Type", "Authorization"],
+                "max_age": 3600,
             }
         },
     )
