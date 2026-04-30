@@ -105,17 +105,11 @@ def get_all_farms():
 @farms_bp.route("/api/farms/<farm_id>", methods=["GET"])
 def get_single_farm(farm_id):
     if not ObjectId.is_valid(farm_id):
-        return _error_response(
-            f"The farm id '{farm_id}' is not valid. Please use a MongoDB ObjectId.",
-            400,
-        )
+        return _error_response("Invalid ID format", 400)
 
     farm = _farms_collection().find_one({"_id": ObjectId(farm_id)})
     if not farm:
-        return _error_response(
-            f"No farm was found for id '{farm_id}'. Please check the id and try again.",
-            404,
-        )
+        return _error_response("Farm not found", 404)
 
     return make_response(jsonify(serialize_document(farm)), 200)
 
@@ -254,7 +248,9 @@ def search_farms():
             400,
         )
 
-    search_results = _farms_collection().find({"$text": {"$search": search_term}})
+    search_results = _farms_collection().find({
+        "farm_name": {"$regex": search_term, "$options": "i"}
+    })
     farms_list = [serialize_document(farm) for farm in search_results]
     return make_response(jsonify({"results_count": len(farms_list), "data": farms_list}), 200)
 
