@@ -41,9 +41,6 @@ def signup():
         bcrypt.gensalt(),
     ).decode("utf-8")
 
-    token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-
     try:
         result = users.insert_one(
             {
@@ -52,48 +49,17 @@ def signup():
                 "password": hashed_password,
                 "role": payload["role"],
                 "contact_preference": payload["contact_preference"],
-                "is_verified": False,
-                "verification_token": token,
-                "verification_token_expires_at": expires_at,
+                "is_verified": True, 
                 "created_at": datetime.now(timezone.utc),
             }
         )
     except PyMongoError as exc:
         return make_response(jsonify({"message": "Database error", "error": str(exc)}), 500)
 
-    verification_link = (
-        f"http://{config.Config.HOST}:{config.Config.PORT}/api/users/verify?token={token}"
-    )
-
-    if config.Config.EMAIL_ENABLED:
-        try:
-            ok, send_error = send_verification_email(
-                to_email=payload["email"], verification_link=verification_link
-            )
-        except (OSError, smtplib.SMTPException) as exc:  # type: ignore[name-defined]
-            ok, send_error = False, str(exc)
-
-        if not ok:
-            users.delete_one({"_id": result.inserted_id})
-            return make_response(
-                jsonify({"message": "Unable to send verification email", "error": send_error}),
-                502,
-            )
-
-        return make_response(
-            jsonify(
-                {
-                    "message": f"Account created for {payload['username']}! Please verify your email.",
-                }
-            ),
-            201,
-        )
-
     return make_response(
         jsonify(
             {
-                "message": f"Account created for {payload['username']}! Please verify your email.",
-                "verification_link": verification_link,
+                "message": f"✅ Account created for {payload['username']} successfully! You can now log in.",
             }
         ),
         201,
