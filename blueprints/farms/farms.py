@@ -282,12 +282,18 @@ def search_farms():
 
     skip = (page - 1) * limit
     
+    # ✅ UPDATED: Search in farm_name, crop_type, and address.area_name
+    search_query = {
+        "$or": [
+            {"farm_name": {"$regex": search_term, "$options": "i"}},
+            {"crop_type": {"$regex": search_term, "$options": "i"}},
+            {"address.area_name": {"$regex": search_term, "$options": "i"}}
+        ]
+    }
 
     try:
-        total = _farms_collection().count_documents({"farm_name": {"$regex": search_term, "$options": "i"}})
-        search_results = _farms_collection().find({
-            "farm_name": {"$regex": search_term, "$options": "i"}
-        }).skip(skip).limit(limit)
+        total = _farms_collection().count_documents(search_query)
+        search_results = _farms_collection().find(search_query).skip(skip).limit(limit)
         farms_list = [serialize_document(farm) for farm in search_results]
     except PyMongoError as exc:
         return _error_response(
