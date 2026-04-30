@@ -155,16 +155,13 @@ def create_farm(current_user):
 @farms_bp.route("/api/farms/<farm_id>", methods=["PUT"])
 @jwt_required
 def update_farm(current_user, farm_id):
-    farm, error_response = get_farm_if_authorised(farm_id, current_user)
+    farm, error_response = get_farm_if_authorised(farm_id, current_user)  
     if error_response:
         return error_response
 
     updates, error = validate_farm_payload(request.get_json(silent=True), partial=True)
     if error:
-        return _error_response(
-            f"Unable to update farm: {error}",
-            400,
-        )
+        return _error_response(f"Unable to update farm: {error}", 400)
 
     try:
         result = _farms_collection().update_one({"_id": ObjectId(farm_id)}, {"$set": updates})
@@ -205,7 +202,7 @@ def delete_farm(current_user, farm_id):
 @farms_bp.route("/api/farms/<farm_id>/sensors", methods=["POST"])
 @jwt_required
 def add_sensor(current_user, farm_id):
-    farm, error_response = get_farm_if_authorised(farm_id, current_user)  # ← CAPTURES FARM
+    farm, error_response = get_farm_if_authorised(farm_id, current_user)
     if error_response:
         return error_response
 
@@ -318,7 +315,7 @@ def search_farms():
 @farms_bp.route("/api/farms/<farm_id>/sync_weather", methods=["POST"])
 @jwt_required
 def sync_weather(current_user, farm_id):
-    farm, error_response = get_farm_if_authorised(farm_id, current_user)
+    farm, error_response = get_farm_if_authorised(farm_id, current_user) 
     if error_response:
         return error_response
 
@@ -449,7 +446,7 @@ def get_farm_insights(current_user, farm_id):
 @farms_bp.route("/api/farms/<farm_id>/irrigation_check", methods=["GET"])
 @jwt_required
 def check_irrigation(current_user, farm_id):
-    farm, error_response = get_farm_if_authorised(farm_id, current_user)
+    farm, error_response = get_farm_if_authorised(farm_id, current_user)  
     if error_response:
         return error_response
 
