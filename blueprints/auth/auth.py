@@ -107,7 +107,7 @@ def verify_email():
         return make_response(jsonify({"message": "Missing verification token"}), 400)
 
     users = config.get_db().users
-    now = datetime.datetime.utcnow()
+    now = datetime.now(timezone.utc)  
 
     try:
         user = users.find_one({"verification_token": token})
@@ -115,7 +115,7 @@ def verify_email():
             return make_response(jsonify({"message": "Invalid verification link"}), 400)
 
         expires_at = user.get("verification_token_expires_at")
-        if not isinstance(expires_at, datetime.datetime) or expires_at < now:
+        if not isinstance(expires_at, datetime) or expires_at < now:  
             return make_response(jsonify({"message": "Verification link expired"}), 400)
 
         result = users.update_one(
@@ -129,7 +129,7 @@ def verify_email():
         return make_response(jsonify({"message": "User not found"}), 404)
 
     return make_response(
-        jsonify({"message": "Email successfully verified! You can now log in."}),
+        jsonify({"message": "✅ Email successfully verified! You can now log in."}),
         200,
     )
 
