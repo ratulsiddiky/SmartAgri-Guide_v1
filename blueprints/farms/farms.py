@@ -1,5 +1,4 @@
-from datetime import datetime
-
+from datetime import datetime, timezone
 import requests
 from bson import ObjectId
 from flask import Blueprint, jsonify, make_response, request
@@ -143,7 +142,7 @@ def create_farm(current_user):
         )
 
     farm_data["owner_id"] = current_user["_id"]
-    farm_data["created_at"] = datetime.utcnow()
+    farm_data["created_at"] = datetime.now(timezone.utc)
     result = _farms_collection().insert_one(farm_data)
 
     return make_response(
@@ -342,7 +341,7 @@ def sync_weather(current_user, farm_id):
 
     current_weather = weather_data.get("current_weather", {})
     new_log = {
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
         "temperature_celsius": current_weather.get("temperature"),
         "windspeed": current_weather.get("windspeed"),
         "conditions": "Synced from Open-Meteo API",

@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta, timezone
 import secrets
 import smtplib
 
@@ -41,7 +41,7 @@ def signup():
     ).decode("utf-8")
 
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
 
     try:
         result = users.insert_one(
@@ -54,7 +54,7 @@ def signup():
                 "is_verified": False,
                 "verification_token": token,
                 "verification_token_expires_at": expires_at,
-                "created_at": datetime.datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
             }
         )
     except PyMongoError as exc:
@@ -162,7 +162,7 @@ def login():
             "username": user["username"],
             "role": user["role"],
             "user_id": str(user["_id"]),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
         },
         config.Config.SECRET_KEY,
         algorithm="HS256",
