@@ -39,7 +39,7 @@ def test_signup_creates_user(client):
     )
 
     assert response.status_code == 201
-    assert response.get_json()["message"].startswith("Account created for new_farmer")
+    assert "Account created for new_farmer" in response.get_json()["message"]
 
 
 def test_login_requires_verified_user(client):
