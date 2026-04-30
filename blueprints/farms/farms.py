@@ -137,7 +137,7 @@ def create_farm(current_user):
 @farms_bp.route("/api/farms/<farm_id>", methods=["PUT"])
 @jwt_required
 def update_farm(current_user, farm_id):
-    _, error_response = get_farm_if_authorised(farm_id, current_user)
+    farm, error_response = get_farm_if_authorised(farm_id, current_user)
     if error_response:
         return error_response
 
@@ -255,11 +255,46 @@ def search_farms():
             400,
         )
 
-    search_results = _farms_collection().find({
-        "farm_name": {"$regex": search_term, "$options": "i"}
-    })
-    farms_list = [serialize_document(farm) for farm in search_results]
-    return make_response(jsonify({"results_count": len(farms_list), "data": farms_list}), 200)
+    page_raw = request.args.get("page", "1")
+    limit_raw = request.args.get("limit", "20")
+    try:
+        page = max(1, int(page_raw))
+        limit = max(1, min(100, int(limit_raw)))
+    except (TypeError, ValueError):
+        return _error_response(
+            f"Invalid pagination parameters: page='{page_raw}' and limit='{limit_raw}' must both be whole numbers.",
+            400,
+        )
+
+    skip = (page - 1) * limit
+    
+
+    try:
+        total = _farms_collection().count_documents({"farm_name": {"$regex": search_term, "$options": "i"}})
+        search_results = _farms_collection().find({
+            "farm_name": {"$regex": search_term, "$options": "i"}
+        }).skip(skip).limit(limit)
+        farms_list = [serialize_document(farm) for farm in search_results]
+    except PyMongoError as exc:
+        return _error_response(
+            "Search failed because of a database error.",
+            500,
+            error=str(exc),
+        )
+    
+    return make_response(
+        jsonify({
+            "results_count": len(farms_list),
+            "total": total,
+            "data": farms_list,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "has_next": skip + len(farms_list) < total,
+            }
+        }), 
+        200
+    )
 
 
 @farms_bp.route("/api/farms/<farm_id>/sync_weather", methods=["POST"])
@@ -432,6 +467,7 @@ def check_irrigation(current_user, farm_id):
 def get_regional_insights(region_name):
     pipeline = [
         {"$match": {"address.area_name": region_name}},
+        {"$limit": 500},
         {"$unwind": "$weather_logs"},
         {
             "$group": {

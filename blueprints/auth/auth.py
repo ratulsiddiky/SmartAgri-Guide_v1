@@ -211,8 +211,41 @@ def get_all_users(current_user):
     if current_user.get("role") != "admin":
         return make_response(jsonify({"message": "Admin access required"}), 403)
 
-    users_list = [
-        serialize_document(user)
-        for user in config.get_db().users.find({}, {"password": 0})
-    ]
-    return make_response(jsonify({"count": len(users_list), "users": users_list}), 200)
+    page_raw = request.args.get("page", "1")
+    limit_raw = request.args.get("limit", "20")
+    try:
+        page = max(1, int(page_raw))
+        limit = max(1, min(100, int(limit_raw)))
+    except (TypeError, ValueError):
+        return make_response(
+            jsonify({"message": "Invalid pagination parameters"}),
+            400,
+        )
+
+    skip = (page - 1) * limit
+    
+    try:
+        total = config.get_db().users.count_documents({})
+        users_list = [
+            serialize_document(user)
+            for user in config.get_db().users.find({}, {"password": 0}).skip(skip).limit(limit)
+        ]
+    except PyMongoError as exc:
+        return make_response(
+            jsonify({"message": "Database error", "error": str(exc)}),
+            500,
+        )
+    
+    return make_response(
+        jsonify({
+            "count": len(users_list),
+            "total": total,
+            "users": users_list,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "has_next": skip + len(users_list) < total,
+            }
+        }), 
+        200
+    )

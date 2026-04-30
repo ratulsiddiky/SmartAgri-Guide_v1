@@ -38,10 +38,20 @@ def validate_password_strength(password: str):
 
 
 def serialize_document(value):
-    if isinstance(value, list):
-        return [serialize_document(item) for item in value]
-    if isinstance(value, dict):
-        return {key: serialize_document(item) for key, item in value.items()}
+    """
+    Convert MongoDB documents to JSON-serializable format.
+    Optimized to avoid unnecessary recursion on primitive types.
+    """
     if isinstance(value, ObjectId):
         return str(value)
+    
+    if isinstance(value, dict):
+        return {
+            key: serialize_document(item) 
+            for key, item in value.items()
+        }
+    
+    if isinstance(value, list):
+        return [serialize_document(item) for item in value]
+
     return value

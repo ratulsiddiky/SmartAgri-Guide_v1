@@ -27,7 +27,6 @@ def jwt_required(view_func):
             )
 
         db = config.get_db()
-        users = db.users
         blacklist = db.blacklist
 
         if blacklist.find_one({"token": token}):
@@ -49,7 +48,9 @@ def jwt_required(view_func):
                 401,
             )
 
-        current_user = users.find_one({"username": payload.get("username")})
+        users = db.users
+        username = payload.get("username")
+        current_user = users.find_one({"username": username})
         if current_user is None:
             return make_response(
                 jsonify({"message": "User associated with token was not found."}),

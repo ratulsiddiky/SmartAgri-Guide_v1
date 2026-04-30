@@ -4,7 +4,34 @@ from email.message import EmailMessage
 from config import Config
 
 
+import smtplib
+import threading  
+from email.message import EmailMessage
+
+from config import Config
+
+
+def _send_email_sync(to_email: str, subject: str, text_body: str):
+    """Internal function that actually sends the email (blocking)."""
+    msg = EmailMessage()
+    msg["From"] = Config.EMAIL_FROM
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.set_content(text_body)
+
+    try:
+        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=15) as server:
+            if Config.SMTP_USE_TLS:
+                server.starttls()
+            server.login(Config.SMTP_USERNAME, Config.SMTP_PASSWORD)
+            server.send_message(msg)
+        print(f"Email sent successfully to {to_email}")
+    except Exception as e:
+        print(f"Failed to send email to {to_email}: {str(e)}")
+
+
 def send_email(*, to_email: str, subject: str, text_body: str):
+    """Non-blocking email send - runs in background thread."""
     if not Config.EMAIL_ENABLED:
         return False, "EMAIL_ENABLED is false"
 
@@ -21,17 +48,12 @@ def send_email(*, to_email: str, subject: str, text_body: str):
     if missing:
         return False, f"Missing email configuration: {', '.join(missing)}"
 
-    msg = EmailMessage()
-    msg["From"] = Config.EMAIL_FROM
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.set_content(text_body)
-
-    with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=15) as server:
-        if Config.SMTP_USE_TLS:
-            server.starttls()
-        server.login(Config.SMTP_USERNAME, Config.SMTP_PASSWORD)
-        server.send_message(msg)
+    thread = threading.Thread(
+        target=_send_email_sync,
+        args=(to_email, subject, text_body),
+        daemon=True
+    )
+    thread.start()
 
     return True, None
 

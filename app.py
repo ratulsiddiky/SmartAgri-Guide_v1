@@ -34,15 +34,28 @@ def create_app():
         )
 
     with app.app_context():
-        db = get_db()
-        try:
-            db.farms.create_index([("location", "2dsphere")])
-        except Exception as e:
-            print(f"Database Index Note (2dsphere): {e}")
-        try:
-            db.farms.create_index([("farm_name", "text"), ("crop_type", "text")])
-        except Exception as e:
-            print(f"Database Index Note (text): {e}")
+    db = get_db()
+    try:
+        db.farms.create_index([("location", "2dsphere")])
+    except Exception as e:
+        print(f"Database Index Note (2dsphere): {e}")
+    try:
+        db.farms.create_index([("farm_name", "text"), ("crop_type", "text")])
+    except Exception as e:
+        print(f"Database Index Note (text): {e}")    
+    
+    try:
+        db.farms.create_index([("owner_id", 1)])
+    except Exception as e:
+        print(f"Database Index Note (owner_id): {e}")
+    try:
+        db.users.create_index([("username", 1)])
+    except Exception as e:
+        print(f"Database Index Note (username): {e}")
+    try:
+        db.blacklist.create_index([("token", 1)])
+    except Exception as e:
+        print(f"Database Index Note (blacklist token): {e}")
 
     return app
 

@@ -55,7 +55,12 @@ def _require_config():
 @lru_cache(maxsize=1)
 def get_mongo_client():
     _require_config()
-    return MongoClient(Config.MONGO_URI)
+    return MongoClient(
+        Config.MONGO_URI,
+        maxPoolSize=50, 
+        minPoolSize=10,  
+        socketTimeoutMS=5000  
+    )
 
 
 @lru_cache(maxsize=1)
