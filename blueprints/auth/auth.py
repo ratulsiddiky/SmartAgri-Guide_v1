@@ -6,6 +6,7 @@ import bcrypt
 import jwt
 from bson import ObjectId
 from flask import Blueprint, jsonify, make_response, request
+from flask_cors import cross_origin  
 from pymongo.errors import PyMongoError
 
 from blueprints.auth.models import validate_signup_payload
@@ -100,6 +101,7 @@ def signup():
 
 
 @auth_bp.route("/api/users/verify", methods=["GET"])
+@cross_origin()
 @limiter.limit("30 per hour")
 def verify_email():
     token = request.args.get("token", "").strip()
