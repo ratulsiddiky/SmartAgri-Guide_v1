@@ -12,7 +12,7 @@ from blueprints.farms.models import (
 import config
 from decorators import jwt_required
 from extensions import limiter
-from utils.validators import serialize_document
+from utils.validators import serialize_document, validate_farm_input
 
 farms_bp = Blueprint("farms_bp", __name__)
 
@@ -134,11 +134,23 @@ def get_single_farm(farm_id):
 @farms_bp.route("/api/farms", methods=["POST"])
 @jwt_required
 def create_farm(current_user):
-    farm_data, error = validate_farm_payload(request.get_json(silent=True))
+    json_data = request.get_json(silent=True)
+    
+    
+    farm_data, error = validate_farm_payload(json_data)
     if error:
         return _error_response(
             f"Unable to create farm: {error}",
             400,
+        )
+    
+    
+    _, validation_errors = validate_farm_input(farm_data)
+    if validation_errors:
+        return _error_response(
+            "Validation failed",
+            400,
+            errors=validation_errors,
         )
 
     farm_data["owner_id"] = current_user["_id"]
@@ -158,9 +170,21 @@ def update_farm(current_user, farm_id):
     if error_response:
         return error_response
 
-    updates, error = validate_farm_payload(request.get_json(silent=True), partial=True)
+    json_data = request.get_json(silent=True)
+    
+    
+    updates, error = validate_farm_payload(json_data, partial=True)
     if error:
         return _error_response(f"Unable to update farm: {error}", 400)
+    
+    
+    _, validation_errors = validate_farm_input(updates)
+    if validation_errors:
+        return _error_response(
+            "Validation failed",
+            400,
+            errors=validation_errors,
+        )
 
     try:
         result = _farms_collection().update_one({"_id": ObjectId(farm_id)}, {"$set": updates})

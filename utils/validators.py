@@ -55,3 +55,21 @@ def serialize_document(value):
         return [serialize_document(item) for item in value]
 
     return value
+
+def validate_farm_input(data):
+    """
+    Validates farm input data according to business rules.
+    Returns: (None, None) if valid
+             (None, errors_dict) if invalid
+    """
+    errors = {}
+    
+    
+    if not is_non_empty_string(data.get('farm_name')):
+        errors['farm_name'] = "Farm name cannot be empty."
+    
+    
+    if 'crop_type' in data and not is_non_empty_string(data.get('crop_type')):
+        errors['crop_type'] = "Crop type cannot be empty."
+    
+    return (None, errors) if errors else (None, None)
